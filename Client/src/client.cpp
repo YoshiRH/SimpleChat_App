@@ -32,6 +32,7 @@ int main() {
 		std::cout << "Client socket created!\n";
 	}
 
+	// Connect client socket to server socket passed in "SERVER_IP"
 	sockaddr_in clientAddr;
 	clientAddr.sin_family = AF_INET;
 	clientAddr.sin_port = htons(PORT);
@@ -44,6 +45,31 @@ int main() {
 	}
 	else {
 		std::cout << "Connected!\n";
+	}
+
+	char buffer[200];
+
+	std::cout << "Msg: ";
+	std::cin.getline(buffer, 200);
+
+	int sendBytes = send(clientSocket, buffer, sizeof(buffer), 0);
+	
+	if (sendBytes > 0) {
+		std::cout << "Message was sent!\n";
+	}
+	else {
+		std::cerr << "Couldn't send the message...\n";
+		WSACleanup();
+	}
+
+	sendBytes = recv(clientSocket, buffer, sizeof(buffer), 0);
+
+	if (sendBytes > 0) {
+		std::cout << "Received message: " << buffer << std::endl;
+	}
+	else {
+		std::cerr << "Couldn't receive the message...\n";
+		WSACleanup();
 	}
 
 	system("pause");

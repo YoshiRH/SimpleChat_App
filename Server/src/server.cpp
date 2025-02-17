@@ -69,6 +69,28 @@ int main() {
 		std::cout << "Connection accepted!\n";
 	}
 
+	char buffer[200];
+	int byteCount = recv(acceptSocket, buffer, sizeof(buffer), 0);
+
+	if (byteCount > 0) {
+		std::cout << "Received message: " << buffer << std::endl;
+	}
+	else {
+		std::cerr << "Couldn't receive the message...\n";
+		WSACleanup();
+	}
+
+	char serverMsg[200] = "Message Received";
+	byteCount = send(acceptSocket, serverMsg, sizeof(serverMsg), 0);
+
+	if (byteCount > 0) {
+		std::cout << "Send message back to client\n";
+	}
+	else {
+		std::cerr << "Couldn't send message to client\n";
+		WSACleanup();
+	}
+
 	system("pause");
 	WSACleanup();
 
