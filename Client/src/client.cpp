@@ -1,6 +1,7 @@
 #include "Client.h"
 #include <iostream>
 
+
 Client::Client() : clientSocket(INVALID_SOCKET) {
 	WSADATA wsaData;
 	WORD version = MAKEWORD(2, 2);
@@ -50,8 +51,9 @@ void Client::Run()
 	std::cout << "Welcome to char room, type messages as you want (type 'exit' to quit)\n";
 
 	while (true) {
-		std::cout << "> ";
 		std::cin.getline(buffer, sizeof(buffer));
+
+		if (strlen(buffer) == 0) continue;
 
 		if (send(clientSocket, buffer, sizeof(buffer), 0) == SOCKET_ERROR) {
 			std::cerr << "[SERVER] Couldn't send the message, try again...\n";
@@ -70,7 +72,7 @@ void Client::receiveMessage()
 	int bytesReceived;
 
 	while (true) {
-		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
 		if (bytesReceived <= 0) {
 			std::cout << "\n[SERVER] Disconnected from server\n";
@@ -79,8 +81,14 @@ void Client::receiveMessage()
 		}
 
 		buffer[bytesReceived] = '\0';
-		std::cout << '\n' << buffer << '\n';
+		{
+			std::lock_guard<std::mutex> lock(coutMutex);
+			std::cout << '\n' << buffer << '\n';
+		}
 	}
+
+	closesocket(clientSocket);
+	exit(0);
 }
 
 

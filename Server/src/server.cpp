@@ -65,7 +65,7 @@ void Server::handleClient(SOCKET clientSocket)
 	int bytesReceived{};
 
 	while (true) {
-		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
 		if (bytesReceived <= 0) {
 			std::cout << "[SERER] Client disconnected\n";
@@ -94,9 +94,22 @@ void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
 {
 	std::lock_guard<std::mutex> lock(clientsMutex);
 
-	for (SOCKET client : clients) {
-		if (client != excludedSocket) {
-			send(client, msg.c_str(), msg.size() + 1, 0);
+	for (auto it = clients.begin(); it != clients.end();) {
+		SOCKET client = *it;
+		if (client == excludedSocket) {
+			++it;
+			continue;
+		}
+
+		int result = send(client, msg.c_str(), msg.size(), 0);
+
+		if (result == SOCKET_ERROR) {
+			std::cerr << "[SERVER] Couldn't send the message to: " << client << ". Deleting client...\n";
+			closesocket(client);
+			it = clients.erase(it);
+		}
+		else {
+			++it;
 		}
 	}
 }

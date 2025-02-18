@@ -2,6 +2,7 @@
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <thread>
+#include <mutex>
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 55555
@@ -17,6 +18,7 @@ public:
 private:
 	SOCKET clientSocket;
 	std::thread receiveThread;
+	std::mutex coutMutex;
 
 	void receiveMessage();
 };
