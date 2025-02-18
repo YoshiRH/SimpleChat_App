@@ -1,98 +1,102 @@
-#include <iostream>
-#include <WS2tcpip.h>
-#include <WinSock2.h>
+#include "Server.h"
+#include "iostream"
 
-#define SERVER_IP "127.0.0.1"
-#define PORT 55555
 
-int main() {
-	SOCKET serverSocket, acceptSocket;
-	WSADATA wsaData;
+Server::Server() : serverSocket(INVALID_SOCKET) {
+	WSAData wsaData;
 	WORD version = MAKEWORD(2, 2);
 
-	// Search for dll and initialize Winsock
 	if (WSAStartup(version, &wsaData) != 0) {
-		std::cerr << "Couldn't initialize winsock...\n";
-		return 0;
+		throw std::runtime_error("Couldn't initialize Winsock: " + std::to_string(WSAGetLastError()));
 	}
-	else {
-		std::cout << "Winsock dll found!\n";
-		std::cout << "Status: " << wsaData.szSystemStatus << std::endl;
-	}
+}
 
-	// Create server socket [IPv4, TCP]
-	serverSocket = INVALID_SOCKET;
+Server::~Server()
+{
+	closesocket(serverSocket);
+	WSACleanup();
+}
+
+void Server::startServer()
+{
 	serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
 	if (serverSocket == INVALID_SOCKET) {
-		std::cerr << "Couldn't create a server socket\n";
-		WSACleanup();
-		return 0;
-	}
-	else {
-		std::cout << "Server socket created!\n";
+		throw std::runtime_error("Couldn't create a server socket: " + std::to_string(WSAGetLastError()));
 	}
 
-	// Bind addres to serverSocket
 	sockaddr_in serverAddr;
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(PORT);
-	inet_pton(AF_INET, SERVER_IP, &serverAddr.sin_addr.s_addr);
+	inet_pton(AF_INET, SERVER_IP, &serverAddr.sin_addr);
 
 	if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-		std::cerr << "Couldn't bind a server socket: " << WSAGetLastError() << std::endl;
 		closesocket(serverSocket);
-		WSACleanup();
-		return 0;
-	}
-	else {
-		std::cout << "Server socket binded!\n";
+		throw std::runtime_error("Couldn't bind to server socket");
 	}
 
-	// Start listenning for connection
-	if (listen(serverSocket, 1) == SOCKET_ERROR) {
-		std::cerr << "Error while listening on socket: " << WSAGetLastError() << std::endl;
-		return 0;
-	}
-	else {
-		std::cout << "Waiting for connection...\n";
+	if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
+		closesocket(serverSocket);
+		throw std::runtime_error("Error while listening for connections...");
 	}
 
-	// Accept connection
-	acceptSocket = accept(serverSocket, nullptr, nullptr);
-	if (acceptSocket == INVALID_SOCKET) {
-		std::cerr << "Error while accepting the connection: " << WSAGetLastError() << std::endl;
-		WSACleanup();
-		return 0;
-	}
-	else {
-		std::cout << "Connection accepted!\n";
-	}
+	std::cout << "[SERVER] Listening for connections on: " << SERVER_IP << " : " << PORT << std::endl;
 
+	while (true) {
+		SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
+
+		if (clientSocket == INVALID_SOCKET) {
+			std::cerr << "Accept error: " << WSAGetLastError() << '\n';
+			continue;
+		}
+
+		{
+			std::lock_guard<std::mutex> lock(clientsMutex);
+			clients.emplace_back(clientSocket);
+		}
+
+		std::thread(&Server::handleClient, this, clientSocket).detach();
+		std::cout << "[SERVER] New client connected\n";
+	}
+}
+
+void Server::handleClient(SOCKET clientSocket)
+{
 	char buffer[200];
-	int byteCount = recv(acceptSocket, buffer, sizeof(buffer), 0);
+	int bytesReceived{};
 
-	if (byteCount > 0) {
-		std::cout << "Received message: " << buffer << std::endl;
+	while (true) {
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+
+		if (bytesReceived <= 0) {
+			std::cout << "[SERER] Client disconnected\n";
+			break;
+		}
+
+		buffer[bytesReceived] = '\0';
+		std::string message(buffer);
+
+		if (message == "exit") {
+			std::cout << "[SERVER] Client requested to disconnect\n";
+			break;
+		}
+
+		broadcast(message, clientSocket);
 	}
-	else {
-		std::cerr << "Couldn't receive the message...\n";
-		WSACleanup();
+
+	closesocket(clientSocket);
+	{
+		std::lock_guard<std::mutex> lock(clientsMutex);
+		clients.erase(std::remove(clients.begin(), clients.end(), clientSocket), clients.end());
 	}
+}
 
-	char serverMsg[200] = "Message Received";
-	byteCount = send(acceptSocket, serverMsg, sizeof(serverMsg), 0);
+void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
+{
+	std::lock_guard<std::mutex> lock(clientsMutex);
 
-	if (byteCount > 0) {
-		std::cout << "Send message back to client\n";
+	for (SOCKET client : clients) {
+		if (client != excludedSocket) {
+			send(client, msg.c_str(), msg.size() + 1, 0);
+		}
 	}
-	else {
-		std::cerr << "Couldn't send message to client\n";
-		WSACleanup();
-	}
-
-	system("pause");
-	WSACleanup();
-
-	return 0;
-};
+}
