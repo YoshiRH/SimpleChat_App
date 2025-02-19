@@ -14,3 +14,5 @@ set(CLIENT_HEADERS
 add_executable(Client ${CLIENT_SOURCES})
 
 target_include_directories(Client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(Client ws2_32)

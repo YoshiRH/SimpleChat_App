@@ -14,3 +14,5 @@ set(SERVER_HEADERS
 add_executable(Server ${SERVER_SOURCES})
 
 target_include_directories(Server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(Server ws2_32)
