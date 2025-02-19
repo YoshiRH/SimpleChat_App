@@ -21,6 +21,8 @@ void Server::startServer()
 {
 	serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (serverSocket == INVALID_SOCKET) {
+		closesocket(serverSocket);
+		WSACleanup();
 		throw std::runtime_error("Couldn't create a server socket: " + std::to_string(WSAGetLastError()));
 	}
 
@@ -31,11 +33,13 @@ void Server::startServer()
 
 	if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
 		closesocket(serverSocket);
+		WSACleanup();
 		throw std::runtime_error("Couldn't bind to server socket");
 	}
 
 	if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
 		closesocket(serverSocket);
+		WSACleanup();
 		throw std::runtime_error("Error while listening for connections...");
 	}
 
@@ -54,39 +58,43 @@ void Server::startServer()
 			clients.emplace_back(clientSocket);
 		}
 
-		std::thread(&Server::handleClient, this, clientSocket).detach();
-		std::cout << "[SERVER] New client connected\n";
+		std::thread handleClientThread(&Server::handleClient, this, clientSocket);
+		handleClientThread.detach();
 	}
+
+	closesocket(serverSocket);
 }
 
 void Server::handleClient(SOCKET clientSocket)
 {
-	char buffer[200];
-	int bytesReceived{};
+	std::cout << "[SERVER] New client connected\n";
+	char buffer[1024];
+	int bytesReceived {};
 
 	while (true) {
-		bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 
 		if (bytesReceived <= 0) {
 			std::cout << "[SERER] Client disconnected\n";
 			break;
 		}
 
-		buffer[bytesReceived] = '\0';
-		std::string message(buffer);
+		std::string message(buffer, bytesReceived);
 
 		if (message == "exit") {
 			std::cout << "[SERVER] Client requested to disconnect\n";
 			break;
 		}
 
+		std::cout << message << std::endl;
 		broadcast(message, clientSocket);
 	}
 
 	closesocket(clientSocket);
 	{
 		std::lock_guard<std::mutex> lock(clientsMutex);
-		clients.erase(std::remove(clients.begin(), clients.end(), clientSocket), clients.end());
+		auto it = std::find(clients.begin(), clients.end(), clientSocket);
+		clients.erase(it);
 	}
 }
 

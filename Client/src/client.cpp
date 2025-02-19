@@ -34,6 +34,7 @@ bool Client::Connect()
 	if (connect(clientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
 		std::cerr << "Couldn't connect to server: " <<  WSAGetLastError();
 		closesocket(clientSocket);
+		WSACleanup();
 		return false;
 	}
 
@@ -44,51 +45,73 @@ bool Client::Connect()
 
 void Client::Run()
 {
+	sendThread = std::thread(&Client::sendMessage, this);
+	sendThread.detach();
+
 	receiveThread = std::thread(&Client::receiveMessage, this);
-	receiveThread.detach();
-
-	char buffer[200];
-	std::cout << "Welcome to char room, type messages as you want (type 'exit' to quit)\n";
-
-	while (true) {
-		std::cin.getline(buffer, sizeof(buffer));
-
-		if (strlen(buffer) == 0) continue;
-
-		if (send(clientSocket, buffer, sizeof(buffer), 0) == SOCKET_ERROR) {
-			std::cerr << "[SERVER] Couldn't send the message, try again...\n";
-			continue;
-		}
-
-		if (buffer == "exit") break;
-	}
+	receiveThread.join();
 
 	closesocket(clientSocket);
 }
 
 void Client::receiveMessage()
 {
-	char buffer[200];
+	char buffer[1024];
 	int bytesReceived;
+	std::string msg;
 
 	while (true) {
-		bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 
 		if (bytesReceived <= 0) {
-			std::cout << "\n[SERVER] Disconnected from server\n";
-			closesocket(clientSocket);
-			exit(0);
-		}
+			std::cout << "\n[SERVER] Disconnected from the server\n";
+			break;
+		} 
+		else {
+			msg = std::string(buffer, bytesReceived);
 
-		buffer[bytesReceived] = '\0';
-		{
 			std::lock_guard<std::mutex> lock(coutMutex);
-			std::cout << '\n' << buffer << '\n';
+			std::cout << "\033[32m" << msg << "\033[0m\n";
 		}
 	}
 
 	closesocket(clientSocket);
+	WSACleanup();
 	exit(0);
+}
+
+void Client::sendMessage()
+{
+	std::cout << "Welcome to chat room, type messages as you want (type 'exit' to quit)\n";
+	std::cout << "Enter your chat name: ";
+	std::string nickname;
+	std::cout << "> ";
+	std::getline(std::cin, nickname);
+
+	std::string message;
+	
+	while (true) {
+		std::getline(std::cin, message);
+		std::string msg = "[" + nickname + "]: " + message;
+
+		if (message.length() == 0) continue;
+
+		if (message == "exit") {
+			std::cout << "Disconnecting...\n";
+			break;
+		}
+
+		int bytesSend = send(clientSocket, msg.c_str(), msg.length(), 0);
+		
+		if (bytesSend == SOCKET_ERROR) {
+			std::cerr << "[SERVER] Couldn't send the message, try again...\n";
+			continue;
+		}
+
+	}
+
+	closesocket(clientSocket);
+	WSACleanup();
 }
 
 

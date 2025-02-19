@@ -17,9 +17,12 @@ public:
 
 private:
 	SOCKET clientSocket;
+
 	std::thread receiveThread;
+	std::thread sendThread;
 	std::mutex coutMutex;
 
 	void receiveMessage();
+	void sendMessage();
 };
 
