@@ -11,6 +11,6 @@ set(SERVER_HEADERS
 	include/Server.h
 )
 
-add_executable(Server ${SERVER_SOURCES} ${SERVER_HEADERS})
+add_executable(Server ${SERVER_SOURCES})
 
-target_include_directories(Server PRIVATE include);
+target_include_directories(Server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

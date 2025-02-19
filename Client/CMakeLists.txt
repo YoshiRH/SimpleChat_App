@@ -11,6 +11,6 @@ set(CLIENT_HEADERS
 	include/Client.h
 )
 
-add_executable(Client ${CLIENT_SOURCES} ${CLIENT_HEADERS})
+add_executable(Client ${CLIENT_SOURCES})
 
-target_include_directories(Client PRIVATE include);
+target_include_directories(Client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
