@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(ServerTest VERSION 1.0.0 LANGUAGES C CXX)
+project(Client-SimpleChat_App VERSION 1.0.0 LANGUAGES C CXX)
 
 set(MAIN_FILE src/main.cpp)
 
