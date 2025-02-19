@@ -1,10 +1,16 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(Client-SimpleChat_App VERSION 1.0.0 LANGUAGES C CXX)
+project(Client VERSION 1.0.0 LANGUAGES C CXX)
 
-set(MAIN_FILE src/main.cpp)
+set(CLIENT_SOURCES
+	src/main.cpp
+	src/Client.cpp
+)
 
-file(GLOB_RECURSE SOURCES src/**/*.cpp)
-file(GLOB_RECURSE HEADERS src/**/*.h)
+set(CLIENT_HEADERS
+	include/Client.h
+)
 
-add_executable(ServerTest ${MAIN_FILE} ${SOURCES} ${HEADERS})
+add_executable(Client ${CLIENT_SOURCES} ${CLIENT_HEADERS})
+
+target_include_directories(Client PRIVATE include);

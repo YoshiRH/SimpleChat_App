@@ -26,7 +26,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Server.h">
+    <ClInclude Include="include\Server.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

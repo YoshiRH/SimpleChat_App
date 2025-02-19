@@ -154,7 +154,7 @@
     <ClCompile Include="src\Server.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Server.h" />
+    <ClInclude Include="include\Server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
