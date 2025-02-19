@@ -104,7 +104,12 @@ void Server::handleClient(SOCKET clientSocket)
 	closesocket(clientSocket);
 	{
 		std::lock_guard<std::mutex> lock(clientsMutex);
-		clients.erase(std::remove(clients.begin(), clients.end(), clientSocket), clients.end());
+		for (auto it = clients.begin(); it != clients.end(); ++it) {
+			if (*it == clientSocket) {
+				clients.erase(it);
+				break;
+			}
+		}
 	}
 }
 
