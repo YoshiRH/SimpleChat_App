@@ -52,6 +52,7 @@ void Client::Run()
 	receiveThread.join();
 
 	closesocket(clientSocket);
+	WSACleanup();
 }
 
 void Client::receiveMessage()
@@ -94,7 +95,7 @@ void Client::sendMessage()
 		std::getline(std::cin, message);
 		std::string msg = "[" + nickname + "]: " + message;
 
-		if (message.length() == 0) continue;
+		if (message.empty()) continue;
 
 		if (message == "exit") {
 			std::cout << "Disconnecting...\n";
