@@ -1,6 +1,6 @@
 #include "../include/Client.h"
 #include <iostream>
-
+#include <windows.h>
 
 Client::Client() : clientSocket(INVALID_SOCKET) {
 	WSADATA wsaData;
@@ -19,37 +19,46 @@ Client::~Client()
 
 bool Client::Connect()
 {
-	clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	for (int attempts = 0; attempts < 5; ++attempts) {
+		clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	if (clientSocket == INVALID_SOCKET) {
-		std::cerr << "Couldn't create clientSocket: " << WSAGetLastError();
-		return false;
+		if (clientSocket == INVALID_SOCKET) {
+			std::cerr << "Couldn't create clientSocket: " << WSAGetLastError();
+			return false;
+		}
+
+		sockaddr_in serverAddr;
+		serverAddr.sin_family = AF_INET;
+		serverAddr.sin_port = htons(PORT);
+		inet_pton(AF_INET, SERVER_IP, &serverAddr.sin_addr);
+
+		if (connect(clientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+			std::cerr << "Attempt " << attempts+1 << ": Couldn't connect to server: " << WSAGetLastError();
+			closesocket(clientSocket);
+			Sleep(2000);
+			continue;
+		}
+
+		std::cout << "Connected to server!\n";
+
+		return true;
 	}
 
-	sockaddr_in serverAddr;
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT);
-	inet_pton(AF_INET, SERVER_IP, &serverAddr.sin_addr);
-
-	if (connect(clientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-		std::cerr << "Couldn't connect to server: " <<  WSAGetLastError();
-		closesocket(clientSocket);
-		WSACleanup();
-		return false;
-	}
-
-	std::cout << "Connected to server!\n";
-
-	return true;
+	std::cerr << "Failed to connect after 5 attempts.\n";
+	WSACleanup();
+	return false;
 }
 
 void Client::Run()
 {
 	sendThread = std::thread(&Client::sendMessage, this);
-	sendThread.detach();
 
 	receiveThread = std::thread(&Client::receiveMessage, this);
 	receiveThread.join();
+
+	running = false;
+
+	sendThread.join();
 
 	closesocket(clientSocket);
 	WSACleanup();
@@ -57,11 +66,12 @@ void Client::Run()
 
 void Client::receiveMessage()
 {
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	char buffer[1024];
 	int bytesReceived;
-	std::string msg;
 
-	while (true) {
+	while (running) {
+		ZeroMemory(buffer, sizeof(buffer));
 		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 
 		if (bytesReceived <= 0) {
@@ -69,16 +79,15 @@ void Client::receiveMessage()
 			break;
 		} 
 		else {
-			msg = std::string(buffer, bytesReceived);
+			std::string msg(buffer, bytesReceived);
 
 			std::lock_guard<std::mutex> lock(coutMutex);
-			std::cout << "\033[32m" << msg << "\033[0m\n";
+			SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+			std::cout << msg << '\n';
+			SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+
 		}
 	}
-
-	closesocket(clientSocket);
-	WSACleanup();
-	exit(0);
 }
 
 void Client::sendMessage()
@@ -89,16 +98,20 @@ void Client::sendMessage()
 	std::cout << "> ";
 	std::getline(std::cin, nickname);
 
+	std::string joinMsg = "[" + nickname + "] has joined";
+	send(clientSocket, joinMsg.c_str(), joinMsg.length(), 0);
+
 	std::string message;
-	
-	while (true) {
+	while (running) {
 		std::getline(std::cin, message);
+		if (message.empty()) continue;
+
 		std::string msg = "[" + nickname + "]: " + message;
 
-		if (message.empty()) continue;
 
 		if (message == "exit") {
 			std::cout << "Disconnecting...\n";
+			send(clientSocket, "exit", 4, 0);
 			break;
 		}
 
@@ -110,9 +123,6 @@ void Client::sendMessage()
 		}
 
 	}
-
-	closesocket(clientSocket);
-	WSACleanup();
 }
 
 

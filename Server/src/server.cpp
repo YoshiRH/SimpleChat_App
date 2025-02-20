@@ -1,7 +1,14 @@
 #include "../include/Server.h"
 #include "../include/Log.h"
-#include "iostream"
+#include <iostream>
+#include <windows.h>
 
+static volatile bool running = true;
+
+BOOL WINAPI ConsoleHandler(DWORD signal) {
+	if (signal == CTRL_C_EVENT) running = false;
+	return TRUE;
+}
 
 Server::Server() : serverSocket(INVALID_SOCKET) {
 	WSAData wsaData;
@@ -20,6 +27,7 @@ Server::~Server()
 
 void Server::startServer()
 {
+	SetConsoleCtrlHandler(ConsoleHandler, TRUE); // Ctrl+C
 	Log::getInstance().printLog("[SERVER] Starting server...");
 
 	serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -52,7 +60,13 @@ void Server::startServer()
 	Log::getInstance().printLog("[SERVER] Listening for connections on: " + std::string(SERVER_IP) + " : " + std::to_string(PORT));
 	std::cout << "[SERVER] Listening for connections on: " << SERVER_IP << " : " << PORT << std::endl;
 
-	while (true) {
+	while (running) {
+		if (clients.size() >= MAX_CLIENTS) {
+			Log::getInstance().printLog("[SERVER] Max clients reached, rejecting new connection");
+			Sleep(1000);
+			continue;
+		}
+
 		SOCKET clientSocket = accept(serverSocket, nullptr, nullptr);
 
 		if (clientSocket == INVALID_SOCKET) {
@@ -64,13 +78,22 @@ void Server::startServer()
 		{
 			std::lock_guard<std::mutex> lock(clientsMutex);
 			clients.emplace_back(clientSocket);
+			clientThreads.emplace_back(&Server::handleClient, this, clientSocket);
 		}
+	}
 
-		std::thread handleClientThread(&Server::handleClient, this, clientSocket);
-		handleClientThread.detach();
+	std::lock_guard<std::mutex> lock(clientsMutex);
+
+	for (auto& client : clients) {
+		closesocket(client);
+	}
+
+	for (auto& thread : clientThreads) {
+		if (thread.joinable()) thread.join();
 	}
 
 	closesocket(serverSocket);
+	serverSocket = INVALID_SOCKET;
 }
 
 void Server::handleClient(SOCKET clientSocket)
@@ -80,12 +103,14 @@ void Server::handleClient(SOCKET clientSocket)
 	char buffer[1024];
 	int bytesReceived {};
 
-	while (true) {
+	while (running) {
+		ZeroMemory(buffer, sizeof(buffer)); 
 		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 
 		if (bytesReceived <= 0) {
 			Log::getInstance().printLog("[SERVER] Client disconnected");
 			std::cout << "[SERVER] Client disconnected\n";
+			broadcast("Client disconnected", clientSocket);
 			break;
 		}
 
@@ -94,6 +119,7 @@ void Server::handleClient(SOCKET clientSocket)
 		if (message == "exit") {
 			Log::getInstance().printLog("[SERVER] Client requested to disconnect");
 			std::cout << "[SERVER] Client requested to disconnect\n";
+			broadcast("Client disconnected", clientSocket);
 			break;
 		}
 
