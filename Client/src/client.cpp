@@ -75,14 +75,20 @@ void Client::receiveMessage()
 		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 
 		if (bytesReceived <= 0) {
+			std::lock_guard<std::mutex> lock(coutMutex);
 			std::cout << "\n[SERVER] Disconnected from the server\n";
+			running = false;
 			break;
 		} 
 		else {
 			std::string msg(buffer, bytesReceived);
 
 			std::lock_guard<std::mutex> lock(coutMutex);
-			SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+			if (msg.find("~") == 0) 
+				SetConsoleTextAttribute(hConsole, FOREGROUND_INTENSITY);
+			else 
+				SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+
 			std::cout << msg << '\n';
 			SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 
@@ -99,7 +105,13 @@ void Client::sendMessage()
 	std::getline(std::cin, nickname);
 
 	std::string joinMsg = "[" + nickname + "] has joined";
-	send(clientSocket, joinMsg.c_str(), joinMsg.length(), 0);
+	if (send(clientSocket, joinMsg.c_str(), joinMsg.length(), 0) == SOCKET_ERROR) {
+		std::cerr << "Failed to send join message " << WSAGetLastError() << '\n';
+		running = false;
+		return;
+	};
+
+	joined = true;
 
 	std::string message;
 	while (running) {
@@ -112,6 +124,7 @@ void Client::sendMessage()
 		if (message == "exit") {
 			std::cout << "Disconnecting...\n";
 			send(clientSocket, "exit", 4, 0);
+			running = false;
 			break;
 		}
 
@@ -119,6 +132,7 @@ void Client::sendMessage()
 		
 		if (bytesSend == SOCKET_ERROR) {
 			std::cerr << "[SERVER] Couldn't send the message, try again...\n";
+			running = false;
 			continue;
 		}
 

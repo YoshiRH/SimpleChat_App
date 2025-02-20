@@ -23,6 +23,7 @@ private:
 	std::thread sendThread;
 	std::mutex coutMutex;
 	std::atomic<bool> running{ true };
+	std::atomic<bool> joined{ false };
 
 	void receiveMessage();
 	void sendMessage();

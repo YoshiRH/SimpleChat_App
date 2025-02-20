@@ -100,8 +100,30 @@ void Server::handleClient(SOCKET clientSocket)
 {
 	Log::getInstance().printLog("[SERVER] New client connected");
 	std::cout << "[SERVER] New client connected\n";
+
 	char buffer[1024];
 	int bytesReceived {};
+
+	while (running) {
+		ZeroMemory(buffer, sizeof(buffer));
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+
+		if (bytesReceived <= 0) {
+			deleteClient(clientSocket);
+			return;
+		}
+
+		std::string message(buffer, bytesReceived);
+
+		if (message.find("has joined") != std::string::npos) {
+			std::cout << message << std::endl;
+			broadcast(message, clientSocket);
+
+			sendHistory(clientSocket);
+
+			break;
+		}
+	}
 
 	while (running) {
 		ZeroMemory(buffer, sizeof(buffer)); 
@@ -127,21 +149,14 @@ void Server::handleClient(SOCKET clientSocket)
 		broadcast(message, clientSocket);
 	}
 
-	closesocket(clientSocket);
-	{
-		std::lock_guard<std::mutex> lock(clientsMutex);
-		for (auto it = clients.begin(); it != clients.end(); ++it) {
-			if (*it == clientSocket) {
-				clients.erase(it);
-				break;
-			}
-		}
-	}
+	deleteClient(clientSocket);
 }
 
 void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
 {
 	std::lock_guard<std::mutex> lock(clientsMutex);
+	
+	addMsgToHistory(msg);
 
 	for (auto it = clients.begin(); it != clients.end();) {
 		SOCKET client = *it;
@@ -160,6 +175,40 @@ void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
 		}
 		else {
 			++it;
+		}
+	}
+}
+
+void Server::sendHistory(SOCKET& clientSocket)
+{
+	std::lock_guard<std::mutex> lock(historyMutex);
+
+	for (const auto& msg : chatHistory) {
+		send(clientSocket, msg.c_str(), msg.size(), 0);
+	}
+}
+
+void Server::addMsgToHistory(const std::string& message)
+{
+	std::lock_guard<std::mutex> lock(historyMutex);
+	
+	std::string historyMsg = "~" + message + '\n';
+	chatHistory.push_back(historyMsg);
+	if (chatHistory.size() > MAX_HISTORY_SIZE) {
+		chatHistory.pop_front();
+	}
+}
+
+void Server::deleteClient(SOCKET clientSocket)
+{
+	closesocket(clientSocket);
+	{
+		std::lock_guard<std::mutex> lock(clientsMutex);
+		for (auto it = clients.begin(); it != clients.end(); ++it) {
+			if (*it == clientSocket) {
+				clients.erase(it);
+				break;
+			}
 		}
 	}
 }
