@@ -8,6 +8,7 @@
 class UserManager
 {
 public:
+
 	UserManager();
 	bool registerUser(const std::string& username, const std::string& password, SOCKET clientSocket);
 	bool loginUser(const std::string& username, const std::string& password, SOCKET clientSocket);

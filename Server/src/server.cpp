@@ -177,7 +177,6 @@ void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
 	std::lock_guard<std::mutex> lock(clientsMutex);
 	
 	addMsgToHistory(msg);
-
 	for (auto it = clients.begin(); it != clients.end();) {
 		SOCKET client = *it;
 		if (client == excludedSocket) {
@@ -185,13 +184,20 @@ void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
 			continue;
 		}
 
-		int result = send(client, msg.c_str(), msg.size(), 0);
+		std::string username = userManager.getUsername(client);
 
-		if (result == SOCKET_ERROR) {
-			Log::getInstance().printLog("[SERVER] Couldn't send the message to: " + std::to_string(client));
-			std::cerr << "[SERVER] Couldn't send the message to: " << client << ". Deleting client...\n";
-			closesocket(client);
-			it = clients.erase(it);
+		if (!username.empty()) {
+			int result = send(client, msg.c_str(), msg.size(), 0);
+
+			if (result == SOCKET_ERROR) {
+				Log::getInstance().printLog("[SERVER] Couldn't send the message to: " + std::to_string(client));
+				std::cerr << "[SERVER] Couldn't send the message to: " << client << ". Deleting client...\n";
+				closesocket(client);
+				it = clients.erase(it);
+			}
+			else {
+				++it;
+			}
 		}
 		else {
 			++it;
