@@ -2,6 +2,7 @@
 #include "../include/Log.h"
 #include <iostream>
 #include <windows.h>
+#include <sstream>
 
 static volatile bool running = true;
 
@@ -114,39 +115,49 @@ void Server::handleClient(SOCKET clientSocket)
 		}
 
 		std::string message(buffer, bytesReceived);
+		std::istringstream iss(message);
+		std::string command{}, arg1{}, arg2{};
+		iss >> command >> arg1 >> arg2;
 
-		if (message.find("has joined") != std::string::npos) {
-			std::cout << message << std::endl;
-			broadcast(message, clientSocket);
-
-			sendHistory(clientSocket);
-
-			break;
+		if (command == "REGISTER") {
+			std::cout << "Registered\n";
+			userManager.registerUser(arg1, arg2, clientSocket);
+		}
+		else if (command == "LOGIN") {
+			std::cout << "Login\n";
+			if(userManager.loginUser(arg1, arg2, clientSocket))
+				break;
 		}
 	}
 
+	std::string username = userManager.getUsername(clientSocket);
+	std::string joinMsg = "[" + username + "] has joined";
+	std::cout << joinMsg << std::endl;
+	broadcast(joinMsg, clientSocket);
+	sendHistory(clientSocket);
+
 	while (running) {
-		ZeroMemory(buffer, sizeof(buffer)); 
+		ZeroMemory(buffer, sizeof(buffer));
 		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 
 		if (bytesReceived <= 0) {
 			Log::getInstance().printLog("[SERVER] Client disconnected");
 			std::cout << "[SERVER] Client disconnected\n";
-			broadcast("Client disconnected", clientSocket);
+			broadcast("[" + username + "] disconnected", clientSocket);
 			break;
 		}
 
 		std::string message(buffer, bytesReceived);
-
 		if (message == "exit") {
 			Log::getInstance().printLog("[SERVER] Client requested to disconnect");
 			std::cout << "[SERVER] Client requested to disconnect\n";
-			broadcast("Client disconnected", clientSocket);
+			broadcast("[" + username + "] disconnected", clientSocket);
 			break;
 		}
 
-		std::cout << message << std::endl;
-		broadcast(message, clientSocket);
+		std::string formatedMsg = "[" + username + "]: " + message;
+		std::cout << formatedMsg << std::endl;
+		broadcast(formatedMsg, clientSocket);
 	}
 
 	deleteClient(clientSocket);

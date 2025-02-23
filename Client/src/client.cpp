@@ -51,6 +51,11 @@ bool Client::Connect()
 
 void Client::Run()
 {
+	if (!authenticate()) {
+		std::cout << "Authentication failed, exiting...\n";
+		return;
+	}
+
 	sendThread = std::thread(&Client::sendMessage, this);
 
 	receiveThread = std::thread(&Client::receiveMessage, this);
@@ -98,18 +103,7 @@ void Client::receiveMessage()
 
 void Client::sendMessage()
 {
-	std::cout << "Welcome to chat room, type messages as you want (type 'exit' to quit)\n";
-	std::cout << "Enter your chat name: ";
-	std::string nickname;
-	std::cout << "> ";
-	std::getline(std::cin, nickname);
-
-	std::string joinMsg = "[" + nickname + "] has joined";
-	if (send(clientSocket, joinMsg.c_str(), joinMsg.length(), 0) == SOCKET_ERROR) {
-		std::cerr << "Failed to send join message " << WSAGetLastError() << '\n';
-		running = false;
-		return;
-	};
+	std::cout << "Welcome to chat room, type messages as you want (type 'exit' to quit)\n\n";
 
 	joined = true;
 
@@ -118,17 +112,13 @@ void Client::sendMessage()
 		std::getline(std::cin, message);
 		if (message.empty()) continue;
 
-		std::string msg = "[" + nickname + "]: " + message;
-
-
 		if (message == "exit") {
 			std::cout << "Disconnecting...\n";
 			send(clientSocket, "exit", 4, 0);
 			running = false;
 			break;
 		}
-
-		int bytesSend = send(clientSocket, msg.c_str(), msg.length(), 0);
+		int bytesSend = send(clientSocket, message.c_str(), message.length(), 0);
 		
 		if (bytesSend == SOCKET_ERROR) {
 			std::cerr << "[SERVER] Couldn't send the message, try again...\n";
@@ -137,6 +127,54 @@ void Client::sendMessage()
 		}
 
 	}
+}
+
+bool Client::authenticate()
+{
+	std::string choice{}, username{}, password{};
+
+	while (running) {
+		std::cout << "1) Login\n2)Register\n> ";
+		std::getline(std::cin, choice);
+
+		if (choice != "1" && choice != "2") {
+			std::cout << "Invalid choice, try again\n";
+			continue;
+		}
+
+		std::cout << "\nEnter username: ";
+		std::getline(std::cin, username);
+
+
+		std::cout << "\nEnter password: ";
+		std::getline(std::cin, password);
+
+		std::string command = (choice == "1") ? "LOGIN" : "REGISTER";
+		std::string message = command + " " + username + " " + password;
+
+		if (send(clientSocket, message.c_str(), sizeof(message), 0) == SOCKET_ERROR) {
+			std::cerr << "Failed to send auth request: " << WSAGetLastError() << '\n';
+			return false;
+		}
+
+		char buffer[1024];
+		ZeroMemory(buffer, sizeof(buffer));
+		int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+		if (bytesReceived <= 0) {
+			std::cerr << "Server disconnected during authentication\n";
+			return false;
+		}
+
+		std::string response(buffer, bytesReceived);
+		std::cout << response << std::endl;
+
+		if (response.find("Login successful") != std::string::npos) {
+			this->username = username;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 

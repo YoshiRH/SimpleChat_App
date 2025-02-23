@@ -1,4 +1,5 @@
 #include "../include/Log.h"
+#include <iostream>
 
 Log& Log::getInstance()
 {

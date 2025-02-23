@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <deque>
+#include "UserManager.h"
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 55555
@@ -20,6 +21,7 @@ public:
 
 private:
 	SOCKET serverSocket;
+	UserManager userManager;
 
 	std::vector<SOCKET> clients;
 	std::vector<std::thread> clientThreads;

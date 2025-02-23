@@ -6,11 +6,15 @@ set(SERVER_SOURCES
 	src/main.cpp
 	src/Server.cpp
 	src/Log.cpp
+	src/User.cpp
+	src/UserManager.cpp
 )
 
 set(SERVER_HEADERS
 	include/Server.h
 	include/Log.h
+	include/User.h
+	include/UserManager.h
 )
 
 add_executable(Server ${SERVER_SOURCES})

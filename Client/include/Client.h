@@ -19,6 +19,8 @@ public:
 private:
 	SOCKET clientSocket;
 
+	std::string username;
+
 	std::thread receiveThread;
 	std::thread sendThread;
 	std::mutex coutMutex;
@@ -27,5 +29,6 @@ private:
 
 	void receiveMessage();
 	void sendMessage();
+	bool authenticate();
 };
 
