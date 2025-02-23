@@ -5,6 +5,10 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <filesystem>
+#include <iostream>
+
+namespace fs = std::filesystem;
 
 UserManager::UserManager()
 {
@@ -64,13 +68,19 @@ bool UserManager::loginUser(const std::string& username, const std::string& pass
 
 void UserManager::loadUsersFromFile()
 {
-	std::ifstream file("user.txt");
+	fs::path filePath = fs::current_path() / "users.txt";
 
-	if (!file.is_open()) {
+	if (!fs::exists(filePath)) {
 		Log::getInstance().printLog("[SERVER] Couldn't find user.txt file, no data loaded");
 		return;
 	}
 
+	std::ifstream file(filePath);
+	if (!file) {
+		Log::getInstance().printLog("[SERVER] Failed to open user.txt file");
+		return;
+	}
+	
 	std::string line;
 	while (std::getline(file, line)) {
 		std::istringstream iss(line);

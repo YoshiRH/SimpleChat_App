@@ -107,7 +107,7 @@ void Server::handleClient(SOCKET clientSocket)
 
 	while (running) {
 		ZeroMemory(buffer, sizeof(buffer));
-		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
 		if (bytesReceived <= 0) {
 			deleteClient(clientSocket);
@@ -115,9 +115,18 @@ void Server::handleClient(SOCKET clientSocket)
 		}
 
 		std::string message(buffer, bytesReceived);
+
+		while (!message.empty() && std::isspace(message.back())) {
+			message.pop_back();
+		}
+
 		std::istringstream iss(message);
 		std::string command{}, arg1{}, arg2{};
 		iss >> command >> arg1 >> arg2;
+
+#ifdef _DEBUG
+		std::cout << "[DEBUG] Received: command=" << command << ", arg1=" << arg1 << ", arg2=" << arg2 << std::endl;
+#endif
 
 		if (command == "REGISTER") {
 			std::cout << "Registered\n";

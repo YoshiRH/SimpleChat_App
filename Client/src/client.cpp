@@ -149,10 +149,18 @@ bool Client::authenticate()
 		std::cout << "\nEnter password: ";
 		std::getline(std::cin, password);
 
+		while (!username.empty() && std::isspace(username.back())) username.pop_back();
+		while (!password.empty() && std::isspace(password.back())) password.pop_back();
+
+
 		std::string command = (choice == "1") ? "LOGIN" : "REGISTER";
 		std::string message = command + " " + username + " " + password;
 
-		if (send(clientSocket, message.c_str(), sizeof(message), 0) == SOCKET_ERROR) {
+#ifdef _DEBUG
+		std::cout << "[DEBUG] Sending: " << message << std::endl;
+#endif
+
+		if (send(clientSocket, message.c_str(), message.length(), 0) == SOCKET_ERROR) {
 			std::cerr << "Failed to send auth request: " << WSAGetLastError() << '\n';
 			return false;
 		}
