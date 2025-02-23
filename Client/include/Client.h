@@ -4,6 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <string>
 
 #define SERVER_IP "127.0.0.1"
 #define PORT 55555
