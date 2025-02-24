@@ -41,15 +41,15 @@ Run the following commands:
    cd build
    cmake ..
    cmake --build .
-3. **Run program**
+3. **Run program**  
 Best way to run the program would be to go to program location in file explorer [project dir]/build/Server and [project dir]/build/Client
 and from there run server app first and then how many clients you want from 'Client' directory to connect to server.
 
-### Usage instructions
+### Usage instructions  
 **Start the server**
 The server listens on 127.0.0.1:55555. You’ll see a startup message in the console.
 
-**Connect a Client**
+**Connect a Client**  
 After launching the client, choose:
 (1) Register: Create a new account (e.g., user1, pass123).
 (2) Login: Log in to an existing account.
