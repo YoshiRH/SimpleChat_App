@@ -1,4 +1,4 @@
-# SimpleChat
+# SimpleChat [in progress]
 
 ![C++](https://img.shields.io/badge/C++-17-blue.svg)
 ![CMake](https://img.shields.io/badge/CMake-3.27-%23008FBA)
