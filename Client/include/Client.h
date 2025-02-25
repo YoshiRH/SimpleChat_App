@@ -6,6 +6,7 @@
 #include <atomic>
 #include <string>
 
+// Server address
 #define SERVER_IP "127.0.0.1"
 #define PORT 55555
 
@@ -26,7 +27,6 @@ private:
 	std::thread sendThread;
 	std::mutex coutMutex;
 	std::atomic<bool> running{ true };
-	std::atomic<bool> joined{ false };
 
 	void receiveMessage();
 	void sendMessage();

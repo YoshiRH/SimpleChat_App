@@ -5,6 +5,7 @@
 #include <chrono>
 #include <iomanip>
 
+// Logger class for server
 class Log {
 public:
 	static Log& getInstance();

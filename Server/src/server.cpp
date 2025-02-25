@@ -4,11 +4,16 @@
 #include <windows.h>
 #include <sstream>
 
-static volatile bool running = true;
+// Flag to define if server is running or not
+static std::atomic<bool> running(true);
 
+// Allow CTRL+C to close server
 BOOL WINAPI ConsoleHandler(DWORD signal) {
-	if (signal == CTRL_C_EVENT) running = false;
-	return TRUE;
+	if (signal == CTRL_C_EVENT) {
+		running = false;
+		return TRUE;
+	}
+	return FALSE;
 }
 
 Server::Server() : serverSocket(INVALID_SOCKET) {
@@ -22,7 +27,10 @@ Server::Server() : serverSocket(INVALID_SOCKET) {
 
 Server::~Server()
 {
-	closesocket(serverSocket);
+	if (serverSocket != INVALID_SOCKET) {
+		closesocket(serverSocket);
+	}
+
 	WSACleanup();
 }
 
@@ -34,11 +42,10 @@ void Server::startServer()
 	serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (serverSocket == INVALID_SOCKET) {
 		Log::getInstance().printLog("Couldn't create a server socket: " + std::to_string(WSAGetLastError()));
-		closesocket(serverSocket);
-		WSACleanup();
 		throw std::runtime_error("Couldn't create a server socket: " + std::to_string(WSAGetLastError()));
 	}
 
+	// Configure server addres (to change adress, change SERVER_IP and PORT in header file)
 	sockaddr_in serverAddr;
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(PORT);
@@ -46,21 +53,18 @@ void Server::startServer()
 
 	if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
 		Log::getInstance().printLog("Couldn't bind to server socket: " + std::to_string(WSAGetLastError()));
-		closesocket(serverSocket);
-		WSACleanup();
 		throw std::runtime_error("Couldn't bind to server socket");
 	}
 
 	if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
 		Log::getInstance().printLog("Error while listening for connections...");
-		closesocket(serverSocket);
-		WSACleanup();
 		throw std::runtime_error("Error while listening for connections...");
 	}
 
 	Log::getInstance().printLog("[SERVER] Listening for connections on: " + std::string(SERVER_IP) + " : " + std::to_string(PORT));
 	std::cout << "[SERVER] Listening for connections on: " << SERVER_IP << " : " << PORT << std::endl;
 
+	// From this point server is going to wait for users connections
 	while (running) {
 		if (clients.size() >= MAX_CLIENTS) {
 			Log::getInstance().printLog("[SERVER] Max clients reached, rejecting new connection");
@@ -76,6 +80,7 @@ void Server::startServer()
 			continue;
 		}
 
+		// Connection accepted and user is added to user list
 		{
 			std::lock_guard<std::mutex> lock(clientsMutex);
 			clients.emplace_back(clientSocket);
@@ -83,18 +88,10 @@ void Server::startServer()
 		}
 	}
 
-	std::lock_guard<std::mutex> lock(clientsMutex);
-
-	for (auto& client : clients) {
-		closesocket(client);
-	}
-
+	// Wait for all connections to quit
 	for (auto& thread : clientThreads) {
 		if (thread.joinable()) thread.join();
 	}
-
-	closesocket(serverSocket);
-	serverSocket = INVALID_SOCKET;
 }
 
 void Server::handleClient(SOCKET clientSocket)
@@ -105,9 +102,10 @@ void Server::handleClient(SOCKET clientSocket)
 	char buffer[1024];
 	int bytesReceived {};
 
+	// Fiest loop that wait for user to login/register before joining to chat
 	while (running) {
 		ZeroMemory(buffer, sizeof(buffer));
-		bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 
 		if (bytesReceived <= 0) {
 			deleteClient(clientSocket);
@@ -116,10 +114,12 @@ void Server::handleClient(SOCKET clientSocket)
 
 		std::string message(buffer, bytesReceived);
 
+		// Delete white spaces from message
 		while (!message.empty() && std::isspace(message.back())) {
 			message.pop_back();
 		}
 
+		// Parse message to a command with 2 args
 		std::istringstream iss(message);
 		std::string command{}, arg1{}, arg2{};
 		iss >> command >> arg1 >> arg2;
@@ -139,12 +139,14 @@ void Server::handleClient(SOCKET clientSocket)
 		}
 	}
 
+	// Just a welcome message to other active users
 	std::string username = userManager.getUsername(clientSocket);
 	std::string joinMsg = "[" + username + "] has joined";
 	std::cout << joinMsg << std::endl;
 	broadcast(joinMsg, clientSocket);
 	sendHistory(clientSocket);
 
+	// Second loop where user operate in chat, our main loop
 	while (running) {
 		ZeroMemory(buffer, sizeof(buffer));
 		bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
@@ -172,11 +174,12 @@ void Server::handleClient(SOCKET clientSocket)
 	deleteClient(clientSocket);
 }
 
+// Function that send a message to all the connected user without the sender
 void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
 {
 	std::lock_guard<std::mutex> lock(clientsMutex);
-	
 	addMsgToHistory(msg);
+
 	for (auto it = clients.begin(); it != clients.end();) {
 		SOCKET client = *it;
 		if (client == excludedSocket) {
@@ -187,7 +190,7 @@ void Server::broadcast(const std::string& msg, SOCKET excludedSocket)
 		std::string username = userManager.getUsername(client);
 
 		if (!username.empty()) {
-			int result = send(client, msg.c_str(), msg.size(), 0);
+			int result = send(client, msg.c_str(), msg.size() + 1, 0); // msg.size() + 1 for /0 terminator from c_str()
 
 			if (result == SOCKET_ERROR) {
 				Log::getInstance().printLog("[SERVER] Couldn't send the message to: " + std::to_string(client));
@@ -210,7 +213,7 @@ void Server::sendHistory(SOCKET& clientSocket)
 	std::lock_guard<std::mutex> lock(historyMutex);
 
 	for (const auto& msg : chatHistory) {
-		send(clientSocket, msg.c_str(), msg.size(), 0);
+		send(clientSocket, msg.c_str(), msg.size() + 1, 0); 
 	}
 }
 

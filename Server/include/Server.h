@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <deque>
+#include <atomic>
 #include "UserManager.h"
 
 #define SERVER_IP "127.0.0.1"
@@ -30,9 +31,11 @@ private:
 	std::deque<std::string> chatHistory;
 	std::mutex historyMutex;
 
+	// Manage communication with user
 	void handleClient(SOCKET clientSocket);
 	void broadcast(const std::string& msg, SOCKET excludedSocket = INVALID_SOCKET);
 
+	// Send last 25 messages new logged client
 	void sendHistory(SOCKET& clientSocket);
 	void addMsgToHistory(const std::string& message);
 

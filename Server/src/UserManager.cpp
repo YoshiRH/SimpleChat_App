@@ -10,6 +10,7 @@
 
 namespace fs = std::filesystem;
 
+// Load users data from file at the start of server
 UserManager::UserManager()
 {
 	loadUsersFromFile();
@@ -26,14 +27,18 @@ bool UserManager::registerUser(const std::string& username, const std::string& p
 	}
 
 	std::lock_guard<std::mutex> lock(userMutex);
+
+	// Check if username is already used
 	if (users.find(username) != users.end()) {
 		std::string response = "[SERVER] Username already taken";
 		send(clientSocket, response.c_str(), sizeof(response), 0);
 		return false;
 	}
 
+	// Add new user to database
 	users.emplace(username, User(username, passwordHash));
 	saveUserToFile(username, passwordHash);
+
 	std::string response = "[SERVER] Registration complete, please login";
 	send(clientSocket, response.c_str(), sizeof(response), 0);
 	return true;
@@ -52,6 +57,7 @@ bool UserManager::loginUser(const std::string& username, const std::string& pass
 	std::lock_guard<std::mutex> lock(userMutex);
 	auto it = users.find(username);
 
+	// Veirfy login data (username and password)
 	if (it == users.end() || !it->second.verifyPassword(passwordHash)) {
 		std::string response = "[SERVER] Invalid username or password, try again";
 		send(clientSocket, response.c_str(), sizeof(response), 0);
@@ -61,13 +67,16 @@ bool UserManager::loginUser(const std::string& username, const std::string& pass
 	std::string response = "[SERVER] Login successful";
 	send(clientSocket, response.c_str(), sizeof(response), 0);
 
+	// Add user to online users list if logged succesfully
 	std::lock_guard<std::mutex> lockActiveUsers(activeUsersMutex);
 	activeUsers[clientSocket] = username;
+
 	return true;
 }
 
 void UserManager::loadUsersFromFile()
 {
+	// Database that hold users data - .txt currently
 	fs::path filePath = fs::current_path() / "users.txt";
 
 	if (!fs::exists(filePath)) {
@@ -81,6 +90,7 @@ void UserManager::loadUsersFromFile()
 		return;
 	}
 	
+	// Load data from file to "users" map 
 	std::string line;
 	while (std::getline(file, line)) {
 		std::istringstream iss(line);
@@ -157,7 +167,10 @@ std::string UserManager::hashPassword(const std::string& password)
 
 void UserManager::saveUserToFile(const std::string& username, const std::string& password)
 {
-	std::ofstream file("users.txt", std::ios::app);
+	// Currently work as a database for users data
+	fs::path filePath = fs::current_path() / "users.txt";
+
+	std::ofstream file(filePath, std::ios::app);
 	if (!file.is_open()) {
 		Log::getInstance().printLog("[SERVER] Couldn't open user.txt file");
 		return;

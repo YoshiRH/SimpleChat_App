@@ -1,5 +1,8 @@
 #include "../include/Log.h"
 #include <iostream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 Log& Log::getInstance()
 {
@@ -7,6 +10,7 @@ Log& Log::getInstance()
 	return instance;
 }
 
+// Print out a custom message to file
 void Log::printLog(const std::string& message)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
@@ -22,9 +26,12 @@ void Log::printLog(const std::string& message)
 	logFile << message << std::endl;
 }
 
+// Open up file at the beggining
 Log::Log()
 {
-	logFile.open("server.log", std::ios::app);
+	fs::path filePath = fs::current_path() / "server.log";
+
+	logFile.open(filePath, std::ios::app);
 	if (!logFile.is_open()) {
 		throw std::runtime_error("Couldn't open log file");
 	}
@@ -32,6 +39,5 @@ Log::Log()
 
 Log::~Log()
 {
-	if (logFile.is_open())
-		logFile.close();
+	logFile.close();
 }

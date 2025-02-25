@@ -1,6 +1,6 @@
 #pragma once
 #include <winsock2.h>
-#include <map>
+#include <unordered_map>
 #include <mutex>
 #include <string>
 #include "User.h"
@@ -16,9 +16,9 @@ public:
 	std::string getUsername(SOCKET clientSocket);
 
 private:
-	std::map<std::string, User> users;
+	std::unordered_map<std::string, User> users; // All registered users
 	std::mutex userMutex;
-	std::map<SOCKET, std::string> activeUsers;
+	std::unordered_map<SOCKET, std::string> activeUsers; // All online users
 	std::mutex activeUsersMutex;
 
 	void saveUserToFile(const std::string& username, const std::string& password);

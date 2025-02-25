@@ -13,10 +13,14 @@ Client::Client() : clientSocket(INVALID_SOCKET) {
 
 Client::~Client()
 {
-	closesocket(clientSocket);
+	if (clientSocket != INVALID_SOCKET) {
+		closesocket(clientSocket);
+	}
+
 	WSACleanup();
 }
 
+// Connect to server (5 attempts)
 bool Client::Connect()
 {
 	for (int attempts = 0; attempts < 5; ++attempts) {
@@ -27,6 +31,7 @@ bool Client::Connect()
 			return false;
 		}
 
+		// Configure server addres (to change it go to .h file and change SERVER_IP and PORT)
 		sockaddr_in serverAddr;
 		serverAddr.sin_family = AF_INET;
 		serverAddr.sin_port = htons(PORT);
@@ -35,6 +40,7 @@ bool Client::Connect()
 		if (connect(clientSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
 			std::cerr << "Attempt " << attempts+1 << ": Couldn't connect to server: " << WSAGetLastError();
 			closesocket(clientSocket);
+			clientSocket = INVALID_SOCKET;
 			Sleep(2000);
 			continue;
 		}
@@ -45,7 +51,6 @@ bool Client::Connect()
 	}
 
 	std::cerr << "Failed to connect after 5 attempts.\n";
-	WSACleanup();
 	return false;
 }
 
@@ -56,17 +61,16 @@ void Client::Run()
 		return;
 	}
 
+	// Thread for sending messages to server
 	sendThread = std::thread(&Client::sendMessage, this);
 
+	// Thread for receiving messages from server
 	receiveThread = std::thread(&Client::receiveMessage, this);
 	receiveThread.join();
 
 	running = false;
 
 	sendThread.join();
-
-	closesocket(clientSocket);
-	WSACleanup();
 }
 
 void Client::receiveMessage()
@@ -87,11 +91,11 @@ void Client::receiveMessage()
 		} 
 		else {
 			std::string msg(buffer, bytesReceived);
-
 			std::lock_guard<std::mutex> lock(coutMutex);
-			if (msg.find("~") == 0) 
+
+			if (msg.find("~") == 0)  // History messages in gray color
 				SetConsoleTextAttribute(hConsole, FOREGROUND_INTENSITY);
-			else 
+			else // Normal messages in green color
 				SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
 
 			std::cout << msg << '\n';
@@ -105,8 +109,6 @@ void Client::sendMessage()
 {
 	std::cout << "Welcome to chat room, type messages as you want (type 'exit' to quit)\n\n";
 
-	joined = true;
-
 	std::string message;
 	while (running) {
 		std::getline(std::cin, message);
@@ -118,17 +120,19 @@ void Client::sendMessage()
 			running = false;
 			break;
 		}
-		int bytesSend = send(clientSocket, message.c_str(), message.length(), 0);
+		int bytesSend = send(clientSocket, message.c_str(), message.length() + 1 , 0); // +1 for /0 terminator from c_str()
 		
 		if (bytesSend == SOCKET_ERROR) {
-			std::cerr << "[SERVER] Couldn't send the message, try again...\n";
+			std::lock_guard<std::mutex> lock(coutMutex);
+			std::cerr << "[SERVER] Couldn't send the message: " << WSAGetLastError() << '\n';
 			running = false;
-			continue;
+			break;
 		}
 
 	}
 }
 
+// Login/Register function
 bool Client::authenticate()
 {
 	std::string choice{}, username{}, password{};
@@ -149,10 +153,11 @@ bool Client::authenticate()
 		std::cout << "\nEnter password: ";
 		std::getline(std::cin, password);
 
+		// Delete white spaces from username and password
 		while (!username.empty() && std::isspace(username.back())) username.pop_back();
 		while (!password.empty() && std::isspace(password.back())) password.pop_back();
 
-
+		// Create a command for server
 		std::string command = (choice == "1") ? "LOGIN" : "REGISTER";
 		std::string message = command + " " + username + " " + password;
 
@@ -160,11 +165,12 @@ bool Client::authenticate()
 		std::cout << "[DEBUG] Sending: " << message << std::endl;
 #endif
 
-		if (send(clientSocket, message.c_str(), message.length(), 0) == SOCKET_ERROR) {
+		if (send(clientSocket, message.c_str(), message.length() + 1, 0) == SOCKET_ERROR) {
 			std::cerr << "Failed to send auth request: " << WSAGetLastError() << '\n';
 			return false;
 		}
 
+		// Return message from server
 		char buffer[1024];
 		ZeroMemory(buffer, sizeof(buffer));
 		int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
