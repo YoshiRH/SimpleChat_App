@@ -138,7 +138,7 @@ bool Client::authenticate()
 	std::string choice{}, username{}, password{};
 
 	while (running) {
-		std::cout << "1) Login\n2)Register\n> ";
+		std::cout << "1) Login\n2) Register\n> ";
 		std::getline(std::cin, choice);
 
 		if (choice != "1" && choice != "2") {

@@ -64,7 +64,7 @@ bool UserManager::loginUser(const std::string& username, const std::string& pass
 		return false;
 	}
 
-	std::string response = "[SERVER] Login successful";
+	std::string response = "\SERVER] Login successful";
 	send(clientSocket, response.c_str(), sizeof(response), 0);
 
 	// Add user to online users list if logged succesfully
