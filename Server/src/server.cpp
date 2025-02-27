@@ -139,7 +139,7 @@ void Server::handleClient(SOCKET clientSocket)
 		}
 	}
 
-	// Just a welcome message to other active users
+	// Just a welcome message to other active users after new connection
 	std::string username = userManager.getUsername(clientSocket);
 	std::string joinMsg = "[" + username + "] has joined";
 	std::cout << joinMsg << std::endl;

@@ -114,7 +114,7 @@ std::string UserManager::getUsername(SOCKET clientSocket)
 	return(it != activeUsers.end() ? it->second : "");
 }
 
-
+// Hash password using SHA256 algorithm
 std::string UserManager::hashPassword(const std::string& password)
 {
 	BCRYPT_ALG_HANDLE hAlg = nullptr;
