@@ -17,6 +17,7 @@
 - **Multi-Client Support**: The server can handle up to 20 clients simultaneously.
 - **Security**: Passwords are stored encrypted in a `users.txt` file.
 - **Simple Interface**: Intuitive console-based interface with basic commands.
+- **Googletest**: Basic functions are tested
 
 ---
 
@@ -33,12 +34,13 @@
 - **CMake 3.27** or newer ([Download CMake](https://cmake.org/download/))
 - C++17-compatible compiler (e.g., MSVC in Visual Studio 2022)
 - Windows (the project uses Winsock, currently limited to this platform)
+- Git 
 
 ### Installation
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/YoshiRH/SimpleChat_App.git
+   git clone --recurse-submodules https://github.com/YoshiRH/SimpleChat_App.git
    cd SimpleChat_App
 2. **Build with CMake**
 Ensure you have a C++ compiler installed (e.g., MSVC in Visual Studio).
@@ -49,8 +51,11 @@ Run the following commands:
    cmake ..
    cmake --build .
 3. **Run program**  
-Best way to run the program would be to go to program location in file explorer [project dir]/build/Server and [project dir]/build/Client
+Best way to run the program would be to go to program location in file explorer [project dir]/build and [project dir]/build/Client
 and from there run server app first and then how many clients you want from 'Client' directory to connect to server.
+
+4. Tests (Optional)
+To check if all test passed go to [project dir]/server/tests and run 'ctest' in terminal.
 
 ### Usage instructions     
 **Start the server**
