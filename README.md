@@ -54,7 +54,7 @@ Run the following commands:
 Best way to run the program would be to go to program location in file explorer [project dir]/build and [project dir]/build/Client
 and from there run server app first and then how many clients you want from 'Client' directory to connect to server.
 
-4. Tests (Optional)
+4. **Tests (Optional)**     
 To check if all test passed go to [project dir]/server/tests and run 'ctest' in terminal.
 
 ### Usage instructions     
