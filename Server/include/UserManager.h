@@ -12,8 +12,12 @@ public:
 	UserManager();
 	bool registerUser(const std::string& username, const std::string& password, SOCKET clientSocket);
 	bool loginUser(const std::string& username, const std::string& password, SOCKET clientSocket);
+
 	void loadUsersFromFile();
+	void saveUserToFile(const std::string& username, const std::string& password);
+
 	std::string getUsername(SOCKET clientSocket);
+	std::string hashPassword(const std::string& password);
 
 private:
 	std::unordered_map<std::string, User> users; // All registered users
@@ -21,7 +25,5 @@ private:
 	std::unordered_map<SOCKET, std::string> activeUsers; // All online users
 	std::mutex activeUsersMutex;
 
-	void saveUserToFile(const std::string& username, const std::string& password);
-	std::string hashPassword(const std::string& password);
 };
 

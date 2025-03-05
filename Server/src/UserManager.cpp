@@ -18,6 +18,12 @@ UserManager::UserManager()
 
 bool UserManager::registerUser(const std::string& username, const std::string& password, SOCKET clientSocket)
 {
+	if (username.empty() || password.empty()) {
+		std::string response = "[SERVER] Username or password is empty!";
+		send(clientSocket, response.c_str(), response.size(), 0);
+		return false;
+	}
+
 	std::string passwordHash = hashPassword(password);
 
 	if (passwordHash.empty()) {
@@ -64,7 +70,7 @@ bool UserManager::loginUser(const std::string& username, const std::string& pass
 		return false;
 	}
 
-	std::string response = "\SERVER] Login successful";
+	std::string response = "[SERVER] Login successful";
 	send(clientSocket, response.c_str(), sizeof(response), 0);
 
 	// Add user to online users list if logged succesfully
