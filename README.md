@@ -17,7 +17,7 @@
 - **Multi-Client Support**: The server can handle up to 20 clients simultaneously.
 - **Security**: Passwords are stored encrypted in a `users.txt` file.
 - **Simple Interface**: Intuitive console-based interface with basic commands.
-- **Googletest**: Basic functions are tested
+- **Googletests**: Basic functions are tested
 
 ---
 
