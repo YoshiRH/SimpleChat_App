@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "../include/User.h"
 
+// Simple test for basis function of User class
+
 struct UserTest : public ::testing::Test {
 	User testUser {"testuser", "pass123"};
 };

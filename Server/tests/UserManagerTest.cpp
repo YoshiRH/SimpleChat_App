@@ -3,6 +3,8 @@
 #include <WinSock2.h>
 #include <fstream>
 
+// Simple test for basis function of UserManager
+
 struct UserManagerTest : public ::testing::Test {
 	UserManager userManager;
 	SOCKET dummySocket = INVALID_SOCKET;
