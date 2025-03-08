@@ -69,7 +69,7 @@ Once logged in, you can start sending messages.
 
 **Controls**   
 Type a message and press Enter to send it to all logged-in users.
-Type exit to disconnect and close the client.
+Type "exit" to disconnect and close the client.
 
 ## License
 This project is licensed under the MIT License. See the LICENSE.txt file for details.
