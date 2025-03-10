@@ -43,3 +43,24 @@ target_link_libraries(UserTest PRIVATE
 )
 
 add_test(NAME UserTest COMMAND UserTest)
+
+
+
+
+add_executable(ServerTest
+		ServerTest.cpp
+		../src/Server.cpp
+		../src/UserManager.cpp
+		../src/User.cpp
+		../src/Log.cpp
+)
+
+target_include_directories(ServerTest PRIVATE
+	../include
+	${CMAKE_CURRENT_SOURCE_DIR}/../external/googletest/googletest/include
+	${CMAKE_CURRENT_SOURCE_DIR}/../external/googletest/googlemock/include
+)
+
+target_link_libraries(ServerTest gtest gtest_main ws2_32 bcrypt)
+
+add_test(NAME ServerTest COMMAND ServerTest)

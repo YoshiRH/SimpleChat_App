@@ -24,6 +24,5 @@ private:
 	std::mutex userMutex;
 	std::unordered_map<SOCKET, std::string> activeUsers; // All online users
 	std::mutex activeUsersMutex;
-
 };
 

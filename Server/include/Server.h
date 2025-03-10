@@ -13,6 +13,9 @@
 #define MAX_CLIENTS 20
 #define MAX_HISTORY_SIZE 25
 
+// Declare class for gTest purpose
+class ServerTest;
+
 class Server
 {
 public:
@@ -40,5 +43,6 @@ private:
 	void addMsgToHistory(const std::string& message);
 
 	void deleteClient(SOCKET clientSocket);
+	friend class ServerTest;
 };
 

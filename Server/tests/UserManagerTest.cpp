@@ -11,9 +11,9 @@ struct UserManagerTest : public ::testing::Test {
 
 	void SetUp() override {
 		WSADATA wsaData;
-		WSAStartup(MAKEWORD(2, 2), &wsaData);
+		int restult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 		dummySocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		std::remove("user.txt");
+		std::remove("users.txt");
 	}
 
 	void TearDown() override {
