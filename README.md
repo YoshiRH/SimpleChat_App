@@ -64,9 +64,9 @@ To check if all test passed go to [project dir]/server/tests and run 'ctest' in 
 The server listens on 127.0.0.1:55555. You’ll see a startup message in the console.
 
 **Connect a Client**     
-After launching the client choose:
-(1) Register: Create a new account (e.g., user1, pass123).
-(2) Login: Log in to an existing account.
+After launching the client choose:     
+(1) Register: Create a new account (e.g., user1, pass123).     
+(2) Login: Log in to an existing account.     
 Once logged in, you can start sending messages.
 
 **Controls**   
