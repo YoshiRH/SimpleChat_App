@@ -7,7 +7,7 @@
 // Flag to define if server is running or not
 static std::atomic<bool> running(true);
 
-// Allow CTRL+C to close server
+// Allow CTRL+C shortcut to close server
 BOOL WINAPI ConsoleHandler(DWORD signal) {
 	if (signal == CTRL_C_EVENT) {
 		running = false;
