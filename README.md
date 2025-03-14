@@ -5,7 +5,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-**SimpleChat** is a lightweight, command-line-based chat application written in C++. It allows users to create accounts, log in, send real-time messages, and view chat history. The program uses a client-server architecture with support for multiple concurrent clients, built on Winsock and threads. The whole programs runs locally on 127.0.0.1 (55555 port).
+**SimpleChat** is a lightweight, command-line chat application written in C++. It allows users to create accounts, log in, send real-time messages, and view chat history. The program uses a client-server architecture with support for multiple concurrent clients, built on Winsock and threads. The whole programs runs locally on 127.0.0.1 (55555 port).
 
 ---
 
